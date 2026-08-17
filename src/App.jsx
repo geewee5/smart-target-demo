@@ -476,40 +476,100 @@ function Approvals({ user }) {
   )
 }
 
+// ─── MULTI-SELECT FILTER DROPDOWN ───
+function MultiFilter({ label, options, selected, onToggle }) {
+  const [open, setOpen] = useState(false)
+  const allSelected = selected.length === 0
+  const displayLabel = allSelected ? `All ${label}` : selected.length === 1 ? selected[0] : `${selected.length} ${label}`
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        className="filter-select"
+        style={{ cursor: 'pointer', minWidth: 140, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, userSelect: 'none' }}
+        onClick={() => setOpen(!open)}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayLabel}</span>
+        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, marginTop: 4,
+          background: '#fff', border: '1px solid var(--border)', borderRadius: 6,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 20,
+          minWidth: 180, maxHeight: 240, overflowY: 'auto', padding: '4px 0',
+        }}>
+          <div
+            style={{ padding: '7px 14px', fontSize: '0.8rem', cursor: 'pointer', color: allSelected ? 'var(--blue)' : 'var(--text)', fontWeight: allSelected ? 600 : 400, background: allSelected ? 'var(--blue-light)' : 'transparent' }}
+            onClick={() => { onToggle(null); setOpen(false) }}
+          >
+            All {label}
+          </div>
+          {options.map(opt => {
+            const isChecked = selected.includes(opt)
+            return (
+              <div
+                key={opt}
+                style={{ padding: '7px 14px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: isChecked ? '#f0f6ff' : 'transparent' }}
+                onClick={() => onToggle(opt)}
+              >
+                <span style={{
+                  width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                  border: isChecked ? '2px solid var(--blue)' : '2px solid var(--border-strong)',
+                  background: isChecked ? 'var(--blue)' : '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: '0.6rem', fontWeight: 700,
+                }}>{isChecked ? '✓' : ''}</span>
+                {opt}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── AUDIT TRAIL ───
 function AuditTrail() {
+  const [actionFilter, setActionFilter] = useState([])
+  const [userFilter, setUserFilter] = useState([])
+  const [searchText, setSearchText] = useState('')
+
+  const allActions = [...new Set(AUDIT_LOG.map(l => l.action))]
+  const allUsers = [...new Set(AUDIT_LOG.map(l => l.user))]
+
+  const toggleFilter = (arr, setArr) => (val) => {
+    if (val === null) { setArr([]); return }
+    setArr(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
+  }
+
+  const filtered = AUDIT_LOG.filter(log => {
+    if (actionFilter.length > 0 && !actionFilter.includes(log.action)) return false
+    if (userFilter.length > 0 && !userFilter.includes(log.user)) return false
+    if (searchText) {
+      const s = searchText.toLowerCase()
+      return (log.node + log.detail + log.category + log.user).toLowerCase().includes(s)
+    }
+    return true
+  })
+
   return (
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1>Audit Trail</h1>
-          <p>Complete log of all actions in this cycle</p>
+          <p>Complete log of all actions in this cycle ({filtered.length} of {AUDIT_LOG.length} entries shown)</p>
         </div>
         <button className="btn btn-ghost btn-sm">↓ Export Logs</button>
       </div>
 
       <div className="filters-row">
-        <select className="filter-select">
-          <option>All Actions</option>
-          <option>Override</option>
-          <option>Approval</option>
-          <option>System</option>
-        </select>
-        <select className="filter-select">
-          <option>All Users</option>
-          <option>Anand Sharma</option>
-          <option>Vikram Singh</option>
-          <option>System</option>
-        </select>
-        <select className="filter-select">
-          <option>All Levels</option>
-          <option>National</option>
-          <option>Region</option>
-          <option>Area</option>
-          <option>Zone</option>
-          <option>DC</option>
-        </select>
-        <input className="filter-input" placeholder="Search..." />
+        <MultiFilter label="Actions" options={allActions} selected={actionFilter} onToggle={toggleFilter(actionFilter, setActionFilter)} />
+        <MultiFilter label="Users" options={allUsers} selected={userFilter} onToggle={toggleFilter(userFilter, setUserFilter)} />
+        <input className="filter-input" placeholder="Search nodes, details..." value={searchText} onChange={e => setSearchText(e.target.value)} />
+        {(actionFilter.length > 0 || userFilter.length > 0 || searchText) && (
+          <button className="btn btn-ghost btn-sm" onClick={() => { setActionFilter([]); setUserFilter([]); setSearchText('') }}>Clear filters</button>
+        )}
       </div>
 
       <div className="table-wrap">
@@ -526,14 +586,17 @@ function AuditTrail() {
             </tr>
           </thead>
           <tbody>
-            {AUDIT_LOG.map((log, i) => {
+            {filtered.length === 0 ? (
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No entries match the current filters</td></tr>
+            ) : filtered.map((log, i) => {
               const actionColor = log.action.includes('Override') ? { bg: '#fffbeb', color: '#92400e' }
                 : log.action.includes('Approved') ? { bg: '#ecfdf5', color: '#065f46' }
+                : log.action.includes('Actuals') ? { bg: '#eff6ff', color: '#1a56db' }
                 : { bg: '#f3f4f6', color: '#4b5563' }
               return (
                 <tr key={i}>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{log.time}</td>
-                  <td style={{ fontWeight: log.user === 'System' ? 400 : 500, color: log.user === 'System' ? 'var(--text-muted)' : 'var(--text)' }}>{log.user}</td>
+                  <td style={{ fontWeight: log.user === 'System' || log.user === 'Admin' ? 400 : 500, color: log.user === 'System' ? 'var(--text-muted)' : 'var(--text)' }}>{log.user}</td>
                   <td>
                     <span style={{ padding: '2px 8px', borderRadius: 3, fontSize: '0.72rem', fontWeight: 500, background: actionColor.bg, color: actionColor.color }}>{log.action}</span>
                   </td>
