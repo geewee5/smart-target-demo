@@ -1,0 +1,216 @@
+erDiagram
+    users {
+        UUID id PK
+        VARCHAR azure_ad_oid UK
+        VARCHAR email
+        VARCHAR display_name
+        ENUM role
+        UUID node_id FK
+        BOOLEAN is_active
+        TIMESTAMP last_login_at
+    }
+
+    hierarchy_nodes {
+        UUID id PK
+        UUID parent_id FK
+        VARCHAR name
+        INTEGER level_depth
+        VARCHAR level_label
+        LTREE ltree_path
+        UUID manager_user_id FK
+        BOOLEAN is_active
+    }
+
+    product_categories {
+        UUID id PK
+        VARCHAR name
+        VARCHAR code
+        INTEGER sort_order
+        BOOLEAN is_active
+    }
+
+    skus {
+        UUID id PK
+        UUID category_id FK
+        VARCHAR brand_name
+        VARCHAR sku_name
+        VARCHAR sku_code
+        DECIMAL trade_price
+        BOOLEAN is_active
+    }
+
+    target_cycles {
+        UUID id PK
+        VARCHAR name
+        VARCHAR fiscal_year
+        INTEGER quarter
+        ENUM status
+        DECIMAL national_target
+        DATE start_date
+        DATE deadline_date
+        TIMESTAMP locked_at
+        UUID created_by FK
+    }
+
+    allocation_weights {
+        UUID id PK
+        UUID parent_node_id FK
+        UUID child_node_id FK
+        UUID category_id FK
+        DECIMAL weight_pct
+        DATE effective_from
+        DATE effective_to
+        UUID created_by FK
+    }
+
+    target_entries {
+        UUID id PK
+        UUID cycle_id FK
+        UUID node_id FK
+        UUID category_id FK
+        UUID sku_id FK
+        DECIMAL auto_value
+        DECIMAL manual_value
+        DECIMAL final_value
+        DECIMAL previous_auto_value
+        ENUM status
+        TEXT justification
+        BOOLEAN is_tentative
+        INTEGER override_attempt
+        UUID modified_by FK
+    }
+
+    approval_requests {
+        UUID id PK
+        UUID target_entry_id FK
+        ENUM approval_type
+        UUID requested_by FK
+        UUID approver_id FK
+        UUID delegated_to FK
+        UUID escalated_to FK
+        DECIMAL old_value
+        DECIMAL new_value
+        DECIMAL change_pct
+        BOOLEAN threshold_breached
+        ENUM status
+        UUID decision_by FK
+        TIMESTAMP decision_at
+        TEXT decision_comment
+        TIMESTAMP sla_deadline
+        BOOLEAN is_sla_breached
+        INTEGER escalation_tier
+    }
+
+    approval_delegations {
+        UUID id PK
+        UUID delegator_id FK
+        UUID delegate_id FK
+        UUID scope_node_id FK
+        TIMESTAMP effective_from
+        TIMESTAMP effective_to
+        BOOLEAN is_active
+    }
+
+    threshold_configs {
+        UUID id PK
+        INTEGER level_depth
+        ENUM mode
+        DECIMAL increase_pct
+        DECIMAL decrease_pct
+        DECIMAL increase_abs
+        DECIMAL decrease_abs
+        BOOLEAN is_active
+        UUID created_by FK
+    }
+
+    actuals_uploads {
+        UUID id PK
+        UUID cycle_id FK
+        INTEGER month
+        UUID uploaded_by FK
+        VARCHAR file_url
+        INTEGER row_count
+        INTEGER error_count
+        ENUM status
+    }
+
+    actuals_entries {
+        UUID id PK
+        UUID upload_id FK
+        UUID cycle_id FK
+        UUID node_id FK
+        UUID category_id FK
+        UUID sku_id FK
+        INTEGER month
+        DECIMAL actual_value
+        DECIMAL achievement_pct
+    }
+
+    governance_audit_log {
+        BIGSERIAL id PK
+        TIMESTAMP timestamp
+        VARCHAR event_type
+        UUID cycle_id
+        UUID node_id
+        UUID category_id
+        UUID actor_id
+        VARCHAR actor_role
+        UUID target_entry_id
+        UUID approval_request_id
+        JSONB old_value
+        JSONB new_value
+        TEXT comment
+        JSONB metadata
+    }
+
+    notification_queue {
+        UUID id PK
+        UUID recipient_id FK
+        ENUM channel
+        VARCHAR event_type
+        VARCHAR subject
+        TEXT body
+        ENUM priority
+        ENUM status
+        TIMESTAMP scheduled_for
+        UUID related_entity_id
+    }
+
+    hierarchy_nodes ||--o{ hierarchy_nodes : "parent_id"
+    users ||--|| hierarchy_nodes : "node_id"
+    hierarchy_nodes ||--o| users : "manager_user_id"
+
+    product_categories ||--o{ skus : "category_id"
+
+    target_cycles ||--o{ target_entries : "cycle_id"
+    hierarchy_nodes ||--o{ target_entries : "node_id"
+    product_categories ||--o{ target_entries : "category_id"
+    skus ||--o{ target_entries : "sku_id"
+    users ||--o{ target_entries : "modified_by"
+
+    hierarchy_nodes ||--o{ allocation_weights : "parent_node_id"
+    hierarchy_nodes ||--o{ allocation_weights : "child_node_id"
+    product_categories ||--o{ allocation_weights : "category_id"
+
+    target_entries ||--o{ approval_requests : "target_entry_id"
+    users ||--o{ approval_requests : "requested_by"
+    users ||--o{ approval_requests : "approver_id"
+    users ||--o{ approval_requests : "delegated_to"
+    users ||--o{ approval_requests : "escalated_to"
+    users ||--o{ approval_requests : "decision_by"
+
+    users ||--o{ approval_delegations : "delegator_id"
+    users ||--o{ approval_delegations : "delegate_id"
+    hierarchy_nodes ||--o{ approval_delegations : "scope_node_id"
+
+    target_cycles ||--o{ actuals_uploads : "cycle_id"
+    users ||--o{ actuals_uploads : "uploaded_by"
+
+    actuals_uploads ||--o{ actuals_entries : "upload_id"
+    target_cycles ||--o{ actuals_entries : "cycle_id"
+    hierarchy_nodes ||--o{ actuals_entries : "node_id"
+    product_categories ||--o{ actuals_entries : "category_id"
+
+    users ||--o{ notification_queue : "recipient_id"
+    users ||--o{ threshold_configs : "created_by"
+    users ||--o{ target_cycles : "created_by"
