@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import {
-  USERS, QUARTER, HIERARCHY, CATEGORIES, APPROVALS,
+  USERS, QUARTER, HIERARCHY, CATEGORIES, APPROVALS, CYCLE_STATES,
   getTargetsForNode, getNodeChildren, getApprovalsForUser, getAuditLogForUser,
   formatCr, getStatusInfo, getDaysToQuarterEnd, getDaysToCycleDeadline,
 } from './data'
 
 // ─── LOGIN ───
 function Login({ onLogin }) {
-  const userList = ['director', 'rh_north', 'am_delhi', 'zm_central', 'dc_cp', 'finance']
+  const userList = ['director', 'rh_north', 'am_delhi', 'zm_central', 'dc_cp', 'rep_cp', 'finance']
   return (
     <div className="login-page">
       <div className="login-card">
@@ -49,6 +49,11 @@ function Layout({ user, currentPage, onNav, onLogout, children }) {
   ]
   if (user.roleKey === 'finance') {
     navItems.splice(1, 1) // finance doesn't need targets grid
+  }
+  if (user.roleKey === 'dc_sales_rep') {
+    // DC Sales Rep is read-only: no edit access to targets, no approval role.
+    // Dashboard already shows their target by Category + achievement %.
+    navItems.splice(1, 2) // drop Targets and Approvals
   }
   return (
     <div className="app-layout">
@@ -101,9 +106,17 @@ function Dashboard({ user }) {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>{QUARTER.name} Target Setting</h1>
-        <p>Cycle opened Aug 11 — Deadline Aug 25, 2026</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1>{QUARTER.name} Target Setting</h1>
+          <p>Cycle opened Aug 11 — Deadline Aug 25, 2026</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <Badge status={QUARTER.status} />
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            {CYCLE_STATES.find(s => s.key === QUARTER.status)?.description}
+          </div>
+        </div>
       </div>
 
       {/* Summary strip */}
@@ -119,7 +132,9 @@ function Dashboard({ user }) {
           </div>
           <div className="field">
             <div className="field-label">Team Size</div>
-            <div className="field-value mono">{user.teamSize > 0 ? `${user.teamSize} people` : 'Staff function'}</div>
+            <div className="field-value mono">
+              {user.teamSize > 0 ? `${user.teamSize} people` : user.roleKey === 'dc_sales_rep' ? 'Individual contributor' : 'Staff function'}
+            </div>
           </div>
           <div className="field">
             <div className="field-label">Hierarchy Scope</div>
@@ -604,7 +619,12 @@ function AuditTrail({ user }) {
                   <td>{log.node}</td>
                   <td style={{ color: 'var(--text-muted)' }}>{log.category}</td>
                   <td style={{ fontSize: '0.82rem' }}>{log.detail}</td>
-                  <td><Badge status={log.status === 'Done' ? 'finalized' : log.status === 'Approved' ? 'approved' : 'pending_skip_level'} /></td>
+                  <td><Badge status={
+                    log.status === 'Done' ? 'finalized'
+                      : log.status === 'Approved' ? 'approved'
+                      : log.status === 'Conflict' ? 'recalculation_conflict'
+                      : 'pending_skip_level'
+                  } /></td>
                 </tr>
               )
             })}
