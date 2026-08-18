@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
-  USERS, QUARTER, HIERARCHY, CATEGORIES, APPROVALS, AUDIT_LOG,
-  getTargetsForNode, getNodeChildren, getApprovalsForUser,
+  USERS, QUARTER, HIERARCHY, CATEGORIES, APPROVALS,
+  getTargetsForNode, getNodeChildren, getApprovalsForUser, getAuditLogForUser,
   formatCr, getStatusInfo, getDaysToQuarterEnd, getDaysToCycleDeadline,
 } from './data'
 
@@ -530,20 +530,21 @@ function MultiFilter({ label, options, selected, onToggle }) {
 }
 
 // ─── AUDIT TRAIL ───
-function AuditTrail() {
+function AuditTrail({ user }) {
   const [actionFilter, setActionFilter] = useState([])
   const [userFilter, setUserFilter] = useState([])
   const [searchText, setSearchText] = useState('')
 
-  const allActions = [...new Set(AUDIT_LOG.map(l => l.action))]
-  const allUsers = [...new Set(AUDIT_LOG.map(l => l.user))]
+  const scopedLog = getAuditLogForUser(user)
+  const allActions = [...new Set(scopedLog.map(l => l.action))]
+  const allUsers = [...new Set(scopedLog.map(l => l.user))]
 
   const toggleFilter = (arr, setArr) => (val) => {
     if (val === null) { setArr([]); return }
     setArr(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])
   }
 
-  const filtered = AUDIT_LOG.filter(log => {
+  const filtered = scopedLog.filter(log => {
     if (actionFilter.length > 0 && !actionFilter.includes(log.action)) return false
     if (userFilter.length > 0 && !userFilter.includes(log.user)) return false
     if (searchText) {
@@ -558,7 +559,7 @@ function AuditTrail() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1>Audit Trail</h1>
-          <p>Complete log of all actions in this cycle ({filtered.length} of {AUDIT_LOG.length} entries shown)</p>
+          <p>Actions affecting {HIERARCHY[user.nodeId]?.name || 'your'} targets ({filtered.length} of {scopedLog.length} entries shown)</p>
         </div>
         <button className="btn btn-ghost btn-sm">↓ Export Logs</button>
       </div>
@@ -628,7 +629,7 @@ export default function App() {
       case 'dashboard': return <Dashboard user={currentUser} />
       case 'targets': return <Targets user={currentUser} />
       case 'approvals': return <Approvals user={currentUser} />
-      case 'audit': return <AuditTrail />
+      case 'audit': return <AuditTrail user={currentUser} />
       default: return <Dashboard user={currentUser} />
     }
   }

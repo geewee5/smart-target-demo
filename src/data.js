@@ -265,19 +265,21 @@ export const APPROVALS = [
 ]
 
 // ─── AUDIT LOG ───
+// Each entry carries nodeId (the hierarchy node it affects) so visibility
+// can be scoped per user — see getAuditLogForUser().
 export const AUDIT_LOG = [
-  { time: 'Aug 13, 10:42 AM', user: 'Vikram Singh', action: 'Override Submitted', node: 'Delhi NCR', category: 'Foods', detail: '₹' + computeTargets('delhi_ncr').find(t=>t.cat==='Foods').auto.toFixed(2) + ' Cr → ₹19.50 Cr', status: 'Pending' },
-  { time: 'Aug 13, 10:38 AM', user: 'System', action: 'Auto-Distribute', node: 'North Region', category: 'All', detail: 'Distributed ₹' + computeTargets('north').reduce((s,t) => s + t.auto, 0).toFixed(1) + ' Cr across 4 Areas', status: 'Done' },
-  { time: 'Aug 13, 09:15 AM', user: 'Anand Sharma', action: 'National Target Set', node: 'National', category: 'All', detail: '₹842 Cr total across 4 categories', status: 'Done' },
-  { time: 'Aug 12, 04:30 PM', user: 'Area Mgr, Punjab', action: 'Override Submitted', node: 'Punjab & Haryana', category: 'Hair Care', detail: '₹' + computeTargets('punjab_hr').find(t=>t.cat==='Hair Care').auto.toFixed(2) + ' Cr → ₹14.00 Cr', status: 'Pending' },
-  { time: 'Aug 12, 03:50 PM', user: 'Anand Sharma', action: 'Approved', node: 'Delhi NCR', category: 'Hair Care', detail: 'Override ₹' + computeTargets('delhi_ncr').find(t=>t.cat==='Hair Care').auto.toFixed(2) + ' → ₹22.00 Cr approved', status: 'Done' },
-  { time: 'Aug 12, 02:10 PM', user: 'Vikram Singh', action: 'Override Submitted', node: 'Delhi NCR', category: 'Hair Care', detail: '₹' + computeTargets('delhi_ncr').find(t=>t.cat==='Hair Care').auto.toFixed(2) + ' Cr → ₹22.00 Cr', status: 'Approved' },
-  { time: 'Aug 12, 01:15 PM', user: 'Sunita Rao', action: 'Override Submitted', node: 'Central Delhi', category: 'Home Care', detail: '₹' + computeTargets('central_delhi').find(t=>t.cat==='Home Care').auto.toFixed(2) + ' Cr → ₹12.50 Cr', status: 'Approved' },
-  { time: 'Aug 12, 11:00 AM', user: 'System', action: 'Cycle Created', node: 'National', category: 'All', detail: 'Q3 FY27 cycle initialized', status: 'Done' },
-  { time: 'Aug 11, 05:20 PM', user: 'Admin', action: 'Hierarchy Updated', node: 'East Region', category: 'All', detail: 'Added 2 new DCs under Jharkhand Zone', status: 'Done' },
-  { time: 'Aug 11, 03:00 PM', user: 'Priya Menon', action: 'Approved', node: 'North Region', category: 'Foods', detail: 'Override ₹' + computeTargets('north').find(t=>t.cat==='Foods').auto.toFixed(2) + ' → ₹63.21 Cr approved', status: 'Done' },
-  { time: 'Aug 11, 01:45 PM', user: 'Kavita Joshi', action: 'Actuals Uploaded', node: 'National', category: 'All', detail: 'July 2026 actuals — 1,834 rows processed', status: 'Done' },
-  { time: 'Aug 11, 10:30 AM', user: 'System', action: 'Auto-Distribute', node: 'South Region', category: 'All', detail: 'Distributed ₹' + computeTargets('south').reduce((s,t) => s + t.auto, 0).toFixed(1) + ' Cr across 3 Areas', status: 'Done' },
+  { time: 'Aug 13, 10:42 AM', user: 'Vikram Singh', action: 'Override Submitted', node: 'Delhi NCR', nodeId: 'delhi_ncr', category: 'Foods', detail: '₹' + computeTargets('delhi_ncr').find(t=>t.cat==='Foods').auto.toFixed(2) + ' Cr → ₹19.50 Cr', status: 'Pending' },
+  { time: 'Aug 13, 10:38 AM', user: 'System', action: 'Auto-Distribute', node: 'North Region', nodeId: 'north', category: 'All', detail: 'Distributed ₹' + computeTargets('north').reduce((s,t) => s + t.auto, 0).toFixed(1) + ' Cr across 4 Areas', status: 'Done' },
+  { time: 'Aug 13, 09:15 AM', user: 'Anand Sharma', action: 'National Target Set', node: 'National', nodeId: 'national', category: 'All', detail: '₹842 Cr total across 4 categories', status: 'Done' },
+  { time: 'Aug 12, 04:30 PM', user: 'Area Mgr, Punjab', action: 'Override Submitted', node: 'Punjab & Haryana', nodeId: 'punjab_hr', category: 'Hair Care', detail: '₹' + computeTargets('punjab_hr').find(t=>t.cat==='Hair Care').auto.toFixed(2) + ' Cr → ₹14.00 Cr', status: 'Pending' },
+  { time: 'Aug 12, 03:50 PM', user: 'Anand Sharma', action: 'Approved', node: 'Delhi NCR', nodeId: 'delhi_ncr', category: 'Hair Care', detail: 'Override ₹' + computeTargets('delhi_ncr').find(t=>t.cat==='Hair Care').auto.toFixed(2) + ' → ₹22.00 Cr approved', status: 'Done' },
+  { time: 'Aug 12, 02:10 PM', user: 'Vikram Singh', action: 'Override Submitted', node: 'Delhi NCR', nodeId: 'delhi_ncr', category: 'Hair Care', detail: '₹' + computeTargets('delhi_ncr').find(t=>t.cat==='Hair Care').auto.toFixed(2) + ' Cr → ₹22.00 Cr', status: 'Approved' },
+  { time: 'Aug 12, 01:15 PM', user: 'Sunita Rao', action: 'Override Submitted', node: 'Central Delhi', nodeId: 'central_delhi', category: 'Home Care', detail: '₹' + computeTargets('central_delhi').find(t=>t.cat==='Home Care').auto.toFixed(2) + ' Cr → ₹12.50 Cr', status: 'Approved' },
+  { time: 'Aug 12, 11:00 AM', user: 'System', action: 'Cycle Created', node: 'National', nodeId: 'national', category: 'All', detail: 'Q3 FY27 cycle initialized', status: 'Done' },
+  { time: 'Aug 11, 05:20 PM', user: 'Admin', action: 'Hierarchy Updated', node: 'East Region', nodeId: 'east', category: 'All', detail: 'Added 2 new DCs under Jharkhand Zone', status: 'Done' },
+  { time: 'Aug 11, 03:00 PM', user: 'Priya Menon', action: 'Approved', node: 'North Region', nodeId: 'north', category: 'Foods', detail: 'Override ₹' + computeTargets('north').find(t=>t.cat==='Foods').auto.toFixed(2) + ' → ₹63.21 Cr approved', status: 'Done' },
+  { time: 'Aug 11, 01:45 PM', user: 'Kavita Joshi', action: 'Actuals Uploaded', node: 'National', nodeId: 'national', category: 'All', detail: 'July 2026 actuals — 1,834 rows processed', status: 'Done' },
+  { time: 'Aug 11, 10:30 AM', user: 'System', action: 'Auto-Distribute', node: 'South Region', nodeId: 'south', category: 'All', detail: 'Distributed ₹' + computeTargets('south').reduce((s,t) => s + t.auto, 0).toFixed(1) + ' Cr across 3 Areas', status: 'Done' },
 ]
 
 // ─── HELPERS ───
@@ -289,6 +291,37 @@ export function getNodeChildren(nodeId) {
 
 export function getApprovalsForUser(userId) {
   return APPROVALS.filter(a => a.approverRole === userId)
+}
+
+// A node is in a user's audit scope if it's an ancestor of (or the user's own
+// node — actions there flow down and affect the user's target) or a
+// descendant of the user's node (their own team's actions).
+function getAncestorChain(nodeId) {
+  const chain = []
+  let node = HIERARCHY[nodeId]
+  while (node) {
+    chain.push(node.id)
+    node = node.parentId ? HIERARCHY[node.parentId] : null
+  }
+  return chain
+}
+
+function getDescendantIds(nodeId) {
+  const ids = []
+  const queue = [nodeId]
+  while (queue.length > 0) {
+    const id = queue.shift()
+    ids.push(id)
+    const node = HIERARCHY[id]
+    if (node?.children) queue.push(...node.children)
+  }
+  return ids
+}
+
+export function getAuditLogForUser(user) {
+  const ancestors = getAncestorChain(user.nodeId)
+  const descendants = getDescendantIds(user.nodeId)
+  return AUDIT_LOG.filter(log => ancestors.includes(log.nodeId) || descendants.includes(log.nodeId))
 }
 
 export function formatCr(val) {
