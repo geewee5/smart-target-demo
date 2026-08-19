@@ -283,12 +283,21 @@ function Targets({ user }) {
   const [activeCategory, setActiveCategory] = useState('all')
   const [expanded, setExpanded] = useState({})
   const [editingCell, setEditingCell] = useState(null)
+  // Session-only overrides typed in by the user — not persisted anywhere,
+  // this is a static-data demo with no backend. Keyed by "nodeId|Category".
+  const [sessionOverrides, setSessionOverrides] = useState({})
 
   const nodeId = user.nodeId
   const children = getNodeChildren(nodeId)
 
   const toggleExpand = (id) => {
     setExpanded(e => ({ ...e, [id]: !e[id] }))
+  }
+
+  const commitOverride = (overrideKey, rawValue) => {
+    const num = parseFloat(rawValue)
+    if (isNaN(num) || num < 0) return // reject invalid/negative input, leave unchanged
+    setSessionOverrides(prev => ({ ...prev, [overrideKey]: Math.round(num * 100) / 100 }))
   }
 
   const renderRows = (nodes, indent = 0) => {
@@ -300,9 +309,18 @@ function Targets({ user }) {
       const rows = []
 
       catTargets.forEach((t, i) => {
-        const isOverride = t.manual !== null
+        const overrideKey = `${node.id}|${t.cat}`
+        const sessionValue = sessionOverrides[overrideKey]
+        // A value typed this session takes precedence over the seed data,
+        // and always reads as a fresh override pending skip-level approval.
+        const manual = sessionValue ?? t.manual
+        const final = sessionValue ?? t.final
+        const status = sessionValue != null ? 'pending_skip_level' : t.status
+        const isOverride = manual !== null && manual !== undefined
+        const cellId = `${node.id}-${i}`
+
         rows.push(
-          <tr key={`${node.id}-${i}`} className={isOverride ? 'override-row' : ''}>
+          <tr key={cellId} className={isOverride ? 'override-row' : ''}>
             {i === 0 && (
               <td rowSpan={catTargets.length} style={{ paddingLeft: 16 + indent * 20, verticalAlign: 'top', paddingTop: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -318,19 +336,34 @@ function Targets({ user }) {
             )}
             <td>{activeCategory === 'all' ? t.cat : ''}</td>
             <td className="mono">{formatCr(t.auto)}</td>
-            <td className="mono" onClick={() => setEditingCell(`${node.id}-${i}`)}>
-              {editingCell === `${node.id}-${i}` ? (
-                <input className="edit-input" defaultValue={t.manual || t.auto} autoFocus onBlur={() => setEditingCell(null)} />
-              ) : t.manual ? (
+            <td className="mono" onClick={() => setEditingCell(cellId)}>
+              {editingCell === cellId ? (
+                <input
+                  className="edit-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={manual ?? t.auto}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                    if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = 'true'; e.currentTarget.blur() }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.dataset.cancelled !== 'true') commitOverride(overrideKey, e.target.value)
+                    setEditingCell(null)
+                  }}
+                />
+              ) : isOverride ? (
                 <span style={{ color: 'var(--blue)', fontWeight: 500 }}>
-                  {formatCr(t.manual)}<span className="override-tag">EDIT</span>
+                  {formatCr(manual)}<span className="override-tag">EDIT</span>
                 </span>
               ) : (
                 <span className="editable-cell">click to edit</span>
               )}
             </td>
-            <td className="mono" style={{ fontWeight: 600 }}>{formatCr(t.final)}</td>
-            <td><Badge status={t.status} /></td>
+            <td className="mono" style={{ fontWeight: 600 }}>{formatCr(final)}</td>
+            <td><Badge status={status} /></td>
           </tr>
         )
       })
